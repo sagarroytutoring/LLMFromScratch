@@ -1,33 +1,37 @@
-# What should be in this package
+# Done
 # - variables
 # - scalar operations
 #   - addition
 #   - multiplication
-# - activation functions
-#   - relu
-#   - sigmoid
-#   - softmax
 # - easy composition of functions
 #   - e.g. z = (x + y)**2
 # - easy derivatives
 #   - e.g. dzdx = d(z, x) (derivative of z with respect to x)
 #   - however, weird thing to note is that other derivatives of z can be computed post hoc, but not other derivates of x or with respect to x
 #       - other derivatives with respect to x can be computed post hoc if forward accumulation is used instead
+#       - in the code I take advantage of this with caching
 # - easily assigning all free variables
 #   - e.g. with assign(x=2, y=5)
-#   - should I support partial assignment? like only assign x?
-#       - then I could do something like x <= 2, but this is sort of jank
 # - easily retrieving outputs and derivatives after assigning variables
 #   - e.g. value(x)
+# - powers
+
+# What should be in this package
+# - activation functions
+#   - relu
+#   - sigmoid
+#   - softmax
+# - should I support partial assignment? like only assign x?
+#   - what additional features could this introduce? currying?
+#   - then I could do something like x <= 2, but this is sort of jank
 
 # next phase:
 # - matmul
 # - vectorized operations
 # - gradient?
-# - update variables?
+# - update variables e.g. gradient descent?
 
 # bonus:
-# - powers
 # - exponentiation (e.g. 2^x)
 # - log
 # - trig functions
@@ -39,6 +43,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections import Counter, defaultdict
+from math import e
 
 
 class VariableAssignmentError(BaseException): pass
@@ -102,7 +107,7 @@ class Expression(ABC):
     def _calc(self):
         pass
 
-    def _start_deriv(self) -> None:
+    def _backprop(self) -> None:
         if self in self._d:  # There was already a backprop from this point
             return
 
@@ -237,6 +242,21 @@ class PowerExpression(Expression):
         self._base._d[numer] += self._d[numer] * self._pow * self._base.val ** (self._pow - 1)
 
 
+class ExponentialExpression(Expression):
+    def __init__(self, exponent: Expression):
+        super().__init__((exponent,))
+        self._expo = exponent
+
+    def _calc(self):
+        return e ** self._expo.val
+
+    def _deriv(self, numer: 'Expression') -> None:
+        self._expo._d[numer] += self.val * self._d[numer]
+
+    def _make_str(self) -> str:
+        return f"exp({self._expo._cached_str})"
+
+
 class Variable(Expression):
     _by_name: dict[str, 'Variable'] = {}
 
@@ -305,7 +325,7 @@ class DerivativeView:
 
     @property
     def val(self):
-        self._num._start_deriv()
+        self._num._backprop()
         return self._denom._d[self._num]
 
 
@@ -319,3 +339,7 @@ def assign(**kwargs):
 
 def value(exp: Expression | DerivativeView):
     return exp.val
+
+
+def exp(exponent: Expression):
+    return ExponentialExpression(exponent)
