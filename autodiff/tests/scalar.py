@@ -282,6 +282,19 @@ class TestAutodiff(unittest.TestCase):
         with assign(x36=10):
             self.assertAlmostEqual(value(dydx), 1/10)
 
+    def test_log_value(self):
+        x = Variable('x37')
+        y = log(x, base=2)
+        with assign(x37=8):
+            self.assertAlmostEqual(value(y), 3)
+
+    def test_log_deriv(self):
+        x = Variable('x38')
+        y = log(x, base=2)
+        dydx = d(y, x)
+        with assign(x38=8):
+            self.assertAlmostEqual(value(dydx), 1 / (8 * math.log(2)))
+
 
 if __name__ == '__main__':
     unittest.main()

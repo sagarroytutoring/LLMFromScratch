@@ -17,6 +17,7 @@
 # - easily retrieving outputs and derivatives after assigning variables
 #   - e.g. value(x)
 # - powers
+# - log
 
 # What should be in this package
 # - activation functions
@@ -36,7 +37,6 @@
 # bonus:
 # - detect circular dependencies (should be pretty easy to add to kahns algo)
 # - exponentiation (e.g. 2^x)
-# - log
 # - trig functions
 # - tanh
 # - higher order derivatives maybe?
@@ -390,3 +390,10 @@ def ln(arg):
         return LogExpression(arg)
     else:
         return math.log(arg)
+
+
+def log(arg, base=None):
+    if base is None:
+        return ln(arg)
+    else:
+        return ln(arg) / ln(base)
