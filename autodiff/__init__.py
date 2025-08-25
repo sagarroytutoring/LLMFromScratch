@@ -3,6 +3,8 @@
 # - scalar operations
 #   - addition
 #   - multiplication
+#   - subtraction
+#   - division
 # - easy composition of functions
 #   - e.g. z = (x + y)**2
 # - easy derivatives
@@ -44,7 +46,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections import Counter, defaultdict
-from math import e
+import math
 
 
 class VariableAssignmentError(BaseException): pass
@@ -85,7 +87,14 @@ class Expression(ABC):
     def __pow__(self, power, modulo=None) -> 'PowerExpression':
         if modulo is not None:
             raise NotImplementedError('Modular exponentiation is not implemented')
+        if isinstance(power, Expression):
+            # TODO
+            raise NotImplementedError()
         return PowerExpression(self, power)
+
+    def __rpow__(self, other):
+        # TODO
+        pass
 
     def __sub__(self, other) -> Union['AdditionExpression', 'ConstantAdditionExpression']:
         return self + -1 * other
@@ -261,13 +270,28 @@ class ExponentialExpression(Expression):
         self._expo = exponent
 
     def _calc(self):
-        return e ** self._expo.val
+        return math.exp(self._expo.val)
 
     def _deriv(self, numer: 'Expression') -> None:
         self._expo._d[numer] += self.val * self._d[numer]
 
     def _make_str(self) -> str:
         return f"exp({self._expo._cached_str})"
+
+
+class LogExpression(Expression):
+    def __init__(self, arg: Expression):
+        super().__init__((arg,))
+        self._arg = arg
+
+    def _calc(self):
+        return math.log(self._arg.val)
+
+    def _deriv(self, numer: 'Expression') -> None:
+        self._arg._d[numer] += self._d[numer] / self._arg.val
+
+    def _make_str(self) -> str:
+        return f"ln({self._arg._cached_str}"
 
 
 class Variable(Expression):
@@ -354,5 +378,15 @@ def value(exp: Expression | DerivativeView):
     return exp.val
 
 
-def exp(exponent: Expression):
-    return ExponentialExpression(exponent)
+def exp(exponent):
+    if isinstance(exp, Expression):
+        return ExponentialExpression(exponent)
+    else:
+        return math.exp(exponent)
+
+
+def ln(arg):
+    if isinstance(arg, Expression):
+        return LogExpression(arg)
+    else:
+        return math.log(arg)

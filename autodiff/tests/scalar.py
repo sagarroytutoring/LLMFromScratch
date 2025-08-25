@@ -1,6 +1,6 @@
 import unittest
 from autodiff import *
-from math import e
+import math
 
 
 class TestAutodiff(unittest.TestCase):
@@ -174,14 +174,14 @@ class TestAutodiff(unittest.TestCase):
         x = Variable('x21')
         y = exp(x)
         with assign(x21=5):
-            self.assertAlmostEqual(value(y), e**5)
+            self.assertAlmostEqual(value(y), math.exp(5))
 
     def test_exp_deriv(self):
         x = Variable('x34')
         y = exp(x)
         dydx = d(y, x)
         with assign(x34=5):
-            self.assertAlmostEqual(value(dydx), e**5)
+            self.assertAlmostEqual(value(dydx), math.exp(5))
 
     def test_const_sub_value(self):
         x = Variable('x22')
@@ -268,6 +268,19 @@ class TestAutodiff(unittest.TestCase):
         with assign(x33=6, y15=3):
             self.assertAlmostEqual(value(dzdx), 1/3)
             self.assertAlmostEqual(value(dzdy), -2/3)
+
+    def test_ln_value(self):
+        x = Variable('x35')
+        y = ln(x)
+        with assign(x35=10):
+            self.assertAlmostEqual(value(y), math.log(10))
+
+    def test_ln_deriv(self):
+        x = Variable('x36')
+        y = ln(x)
+        dydx = d(y, x)
+        with assign(x36=10):
+            self.assertAlmostEqual(value(dydx), 1/10)
 
 
 if __name__ == '__main__':
