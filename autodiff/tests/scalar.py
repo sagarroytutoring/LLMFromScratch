@@ -325,6 +325,13 @@ class TestAutodiff(unittest.TestCase):
             self.assertAlmostEqual(value(dzdx), 108)
             self.assertAlmostEqual(value(dzdy), math.log(3) * 81)
 
+    def test_product_rule(self):
+        x = Variable('x43')
+        y = (x**2 - 3) * (x-4)
+        dydx = d(y, x)
+        with assign(x43=5):
+            self.assertAlmostEqual(value(dydx), 32)
+
 
 if __name__ == '__main__':
     unittest.main()
