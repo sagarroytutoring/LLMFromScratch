@@ -379,7 +379,7 @@ def value(exp: Expression | DerivativeView):
 
 
 def exp(exponent):
-    if isinstance(exp, Expression):
+    if isinstance(exponent, Expression):
         return ExponentialExpression(exponent)
     else:
         return math.exp(exponent)
