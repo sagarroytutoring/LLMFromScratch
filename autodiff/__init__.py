@@ -32,6 +32,7 @@
 # - update variables e.g. gradient descent?
 
 # bonus:
+# - detect circular dependencies (should be pretty easy to add to kahns algo)
 # - exponentiation (e.g. 2^x)
 # - log
 # - trig functions
@@ -85,6 +86,18 @@ class Expression(ABC):
         if modulo is not None:
             raise NotImplementedError('Modular exponentiation is not implemented')
         return PowerExpression(self, power)
+
+    def __sub__(self, other) -> Union['AdditionExpression', 'ConstantAdditionExpression']:
+        return self + -1 * other
+
+    def __rsub__(self, other) -> Union['AdditionExpression', 'ConstantAdditionExpression']:
+        return other + -1 * self
+
+    def __truediv__(self, other) -> Union['MultiplicationExpression', 'ConstantMultiplicationExpression']:
+        return self * other ** -1
+
+    def __rtruediv__(self, other) -> Union['MultiplicationExpression', 'ConstantMultiplicationExpression']:
+        return other * self ** -1
 
     @property
     def val(self):

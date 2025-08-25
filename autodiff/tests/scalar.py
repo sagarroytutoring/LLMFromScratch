@@ -177,11 +177,97 @@ class TestAutodiff(unittest.TestCase):
             self.assertAlmostEqual(value(y), e**5)
 
     def test_exp_deriv(self):
-        x = Variable('x21')
+        x = Variable('x34')
         y = exp(x)
         dydx = d(y, x)
-        with assign(x21=5):
+        with assign(x34=5):
             self.assertAlmostEqual(value(dydx), e**5)
+
+    def test_const_sub_value(self):
+        x = Variable('x22')
+        y = x - 5
+        with assign(x22=7):
+            self.assertAlmostEqual(value(y), 2)
+
+    def test_const_rsub_value(self):
+        x = Variable('x25')
+        y = 5 - x
+        with assign(x25=7):
+            self.assertAlmostEqual(value(y), -2)
+
+    def test_const_sub_deriv(self):
+        x = Variable('x24')
+        y = x - 5
+        dydx = d(y, x)
+        with assign(x24=6):
+            self.assertAlmostEqual(value(dydx), 1)
+
+    def test_const_rsub_deriv(self):
+        x = Variable('x26')
+        y = 3 - x
+        dydx = d(y, x)
+        with assign(x26=6):
+            self.assertAlmostEqual(value(dydx), -1)
+
+    def test_sub_value(self):
+        x = Variable('x23')
+        y = Variable('y12')
+        z = x - y
+        with assign(x23=6, y12=3):
+            self.assertAlmostEqual(value(z), 3)
+
+    def test_sub_deriv(self):
+        x = Variable('x27')
+        y = Variable('y13')
+        z = x - y
+        dzdx = d(z, x)
+        dzdy = d(z, y)
+        with assign(x27=6, y13=3):
+            self.assertAlmostEqual(value(dzdx), 1)
+            self.assertAlmostEqual(value(dzdy), -1)
+
+    def test_const_div_value(self):
+        x = Variable('x28')
+        y = x / 5
+        with assign(x28=7):
+            self.assertAlmostEqual(value(y), 7/5)
+
+    def test_const_rdiv_value(self):
+        x = Variable('x29')
+        y = 5 / x
+        with assign(x29=7):
+            self.assertAlmostEqual(value(y), 5/7)
+
+    def test_const_div_deriv(self):
+        x = Variable('x30')
+        y = x / 5
+        dydx = d(y, x)
+        with assign(x30=6):
+            self.assertAlmostEqual(value(dydx), 1/5)
+
+    def test_const_rdiv_deriv(self):
+        x = Variable('x31')
+        y = 3 / x
+        dydx = d(y, x)
+        with assign(x31=6):
+            self.assertAlmostEqual(value(dydx), -1/12)
+
+    def test_div_value(self):
+        x = Variable('x32')
+        y = Variable('y14')
+        z = x / y
+        with assign(x32=6, y14=3):
+            self.assertAlmostEqual(value(z), 2)
+
+    def test_div_deriv(self):
+        x = Variable('x33')
+        y = Variable('y15')
+        z = x / y
+        dzdx = d(z, x)
+        dzdy = d(z, y)
+        with assign(x33=6, y15=3):
+            self.assertAlmostEqual(value(dzdx), 1/3)
+            self.assertAlmostEqual(value(dzdy), -2/3)
 
 
 if __name__ == '__main__':
