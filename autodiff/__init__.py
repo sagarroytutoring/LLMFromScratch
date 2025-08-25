@@ -18,6 +18,7 @@
 #   - e.g. value(x)
 # - powers
 # - log
+# - exponentiation (e.g. 2^x)
 
 # What should be in this package
 # - activation functions
@@ -36,7 +37,6 @@
 
 # bonus:
 # - detect circular dependencies (should be pretty easy to add to kahns algo)
-# - exponentiation (e.g. 2^x)
 # - trig functions
 # - tanh
 # - higher order derivatives maybe?
@@ -84,17 +84,15 @@ class Expression(ABC):
 
     __rmul__ = __mul__
 
-    def __pow__(self, power, modulo=None) -> 'PowerExpression':
+    def __pow__(self, power, modulo=None) -> Union['PowerExpression', 'ExponentialExpression']:
         if modulo is not None:
             raise NotImplementedError('Modular exponentiation is not implemented')
         if isinstance(power, Expression):
-            # TODO
-            raise NotImplementedError()
+            return exp(ln(self) * power)
         return PowerExpression(self, power)
 
     def __rpow__(self, other):
-        # TODO
-        pass
+        return exp(ln(other) * self)
 
     def __sub__(self, other) -> Union['AdditionExpression', 'ConstantAdditionExpression']:
         return self + -1 * other

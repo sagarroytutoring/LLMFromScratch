@@ -295,6 +295,36 @@ class TestAutodiff(unittest.TestCase):
         with assign(x38=8):
             self.assertAlmostEqual(value(dydx), 1 / (8 * math.log(2)))
 
+    def test_exp_base_value(self):
+        x = Variable('x39')
+        y = 2 ** x
+        with assign(x39=4):
+            self.assertAlmostEqual(value(y), 16)
+
+    def test_exp_base_deriv(self):
+        x = Variable('x40')
+        y = 2 ** x
+        dydx = d(y, x)
+        with assign(x40=4):
+            self.assertAlmostEqual(value(dydx), math.log(2)*16)
+
+    def test_double_exp_value(self):
+        x = Variable('x41')
+        y = Variable('y16')
+        z = x ** y
+        with assign(x41=2, y16=4):
+            self.assertAlmostEqual(value(z), 16)
+
+    def test_double_exp_deriv(self):
+        x = Variable('x42')
+        y = Variable('y17')
+        z = x ** y
+        dzdx = d(z, x)
+        dzdy = d(z, y)
+        with assign(x42=3, y17=4):
+            self.assertAlmostEqual(value(dzdx), 108)
+            self.assertAlmostEqual(value(dzdy), math.log(3) * 81)
+
 
 if __name__ == '__main__':
     unittest.main()
