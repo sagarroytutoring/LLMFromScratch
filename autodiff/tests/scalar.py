@@ -332,6 +332,32 @@ class TestAutodiff(unittest.TestCase):
         with assign(x43=5):
             self.assertAlmostEqual(value(dydx), 32)
 
+    def test_neg_value(self):
+        x = Variable('x44')
+        y = -x
+        with assign(x44=6):
+            self.assertAlmostEqual(value(y), -6)
+
+    def test_neg_deriv(self):
+        x = Variable('x45')
+        y = -x
+        dydx = d(y, x)
+        with assign(x45=6):
+            self.assertAlmostEqual(value(dydx), -1)
+
+    def test_logistic_val(self):
+        x = Variable('x46')
+        y = logistic(x)
+        with assign(x46=math.log(3)):
+            self.assertAlmostEqual(value(y), 3/4)
+
+    def test_logistic_deriv(self):
+        x = Variable('x47')
+        y = logistic(x)
+        dydx = d(y, x)
+        with assign(x47=math.log(3)):
+            self.assertAlmostEqual(value(dydx), 3/16)
+
 
 if __name__ == '__main__':
     unittest.main()

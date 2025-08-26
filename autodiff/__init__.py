@@ -21,6 +21,7 @@
 # - exponentiation (e.g. 2^x)
 
 # What should be in this package
+# - easily make your own expression classes. something like
 # - activation functions
 #   - relu
 #   - sigmoid
@@ -47,13 +48,36 @@ from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections import Counter, defaultdict
 import math
+import inspect
 
 
 class VariableAssignmentError(BaseException): pass
 
 
+class Argument:
+    def __init__(self):
+        self._deriv = None
+        self._pos: Optional[int] = None
+
+    def derivative(self, func):
+        self._deriv = func
+        return func
+
+    def __get__(self, instance: 'Expression', owner=None):
+        return instance._subexps[self._pos]
+
+
 class Expression(ABC):
-    def __init__(self, subexps: tuple['Expression', ...]):
+    _derivs: list
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._derivs = []
+        for pos, (name, argobj) in enumerate(inspect.getmembers(cls, lambda x: isinstance(x, Argument))):
+            argobj._pos = pos
+            cls._derivs.append(argobj._deriv)
+
+    def __init__(self, *subexps: 'Expression'):
         self._subexps = subexps
         self._var_deps: set[Variable] = set()
         for exp in subexps:
@@ -105,6 +129,9 @@ class Expression(ABC):
 
     def __rtruediv__(self, other) -> Union['MultiplicationExpression', 'ConstantMultiplicationExpression']:
         return other * self ** -1
+
+    def __neg__(self):
+        return -1 * self
 
     @property
     def val(self):
@@ -162,18 +189,18 @@ class Expression(ABC):
         for exp in order:
             exp._deriv(self)
 
-    @abstractmethod
     def _deriv(self, numer: 'Expression') -> None:
-        pass
+        for idx, expr in enumerate(self._subexps):
+            expr._d[numer] += self._d[numer] * self._derivs[idx](self)
 
     @property
-    def _cached_str(self):
+    def _str(self):
         if self.__cached_str is None:
             self.__cached_str = self._make_str()
         return self.__cached_str
 
     def __str__(self) -> str:
-        return f'{self._cached_str}={self._val}'
+        return f'{self._str}={self._val}'
 
     @abstractmethod
     def _make_str(self) -> str:
@@ -181,115 +208,133 @@ class Expression(ABC):
 
 
 class AdditionExpression(Expression):
-    def __init__(self, left_term: Expression, right_term: Expression):
-        super().__init__((left_term, right_term))
-        self._left = left_term
-        self._right = right_term
+    left_term = Argument()
+    right_term = Argument()
 
     def _calc(self):
-        return self._left.val + self._right.val
+        return self.left_term.val + self.right_term.val
 
-    def _deriv(self, numer: 'Expression') -> None:
-        self._left._d[numer] += self._d[numer]
-        self._right._d[numer] += self._d[numer]
+    @left_term.derivative
+    @right_term.derivative
+    def deriv(self):
+        return 1
 
     def _make_str(self) -> str:
-        return f'({self._left._cached_str} + {self._right._cached_str})'
+        return f'({self.left_term._str} + {self.right_term._str})'
 
 
 class ConstantAdditionExpression(Expression):
+    exp_term = Argument()
+
     def __init__(self, exp_term: Expression, const_term: Any):
-        super().__init__((exp_term,))
-        self._exp = exp_term
+        super().__init__(exp_term)
         self._const = const_term
 
     def _calc(self):
-        return self._exp.val + self._const
+        return self.exp_term.val + self._const
 
-    def _deriv(self, numer: 'Expression') -> None:
-        self._exp._d[numer] += self._d[numer]
+    @exp_term.derivative
+    def deriv(self):
+        return 1
 
     def _make_str(self) -> str:
-        return f'({self._exp._cached_str} + {self._const})'
+        return f'({self.exp_term._str} + {self._const})'
 
 
 class MultiplicationExpression(Expression):
-    def __init__(self, left_factor: Expression, right_factor: Expression):
-        super().__init__((left_factor, right_factor))
-        self._left = left_factor
-        self._right = right_factor
+    left_factor = Argument()
+    right_factor = Argument()
 
     def _calc(self):
-        return self._left.val * self._right.val
+        return self.left_factor.val * self.right_factor.val
 
-    def _deriv(self, numer: 'Expression') -> None:
-        self._left._d[numer] += self._right.val * self._d[numer]
-        self._right._d[numer] += self._left.val * self._d[numer]
+    @left_factor.derivative
+    def left_deriv(self):
+        return self.right_factor.val
+
+    @right_factor.derivative
+    def right_deriv(self):
+        return self.left_factor.val
 
     def _make_str(self) -> str:
-        return f'({self._left._cached_str} * {self._right._cached_str})'
+        return f'({self.left_factor._str} * {self.right_factor._str})'
 
 
 class ConstantMultiplicationExpression(Expression):
+    exp_factor = Argument()
+
     def __init__(self, exp_factor: Expression, const_factor: Any):
-        super().__init__((exp_factor,))
-        self._exp = exp_factor
+        super().__init__(exp_factor)
         self._const = const_factor
 
     def _calc(self):
-        return self._exp.val * self._const
+        return self.exp_factor.val * self._const
 
-    def _deriv(self, numer: 'Expression') -> None:
-        self._exp._d[numer] += self._const * self._d[numer]
+    @exp_factor.derivative
+    def derivative(self):
+        return self._const
 
     def _make_str(self) -> str:
-        return f'({self._const} * {self._exp._cached_str})'
+        return f'({self._const} * {self.exp_factor._str})'
 
 
 class PowerExpression(Expression):
+    base = Argument()
     def __init__(self, base: Expression, power: Any):
-        super().__init__((base,))
-        self._base = base
+        super().__init__(base)
         self._pow = power
 
     def _calc(self):
-        return self._base.val ** self._pow
+        return self.base.val ** self._pow
+
+    @base.derivative
+    def derivative(self):
+        return self._pow * self.base.val ** (self._pow - 1)
 
     def _make_str(self) -> str:
-        return f'({self._base._cached_str} ** {self._pow})'
-
-    def _deriv(self, numer: 'Expression') -> None:
-        self._base._d[numer] += self._d[numer] * self._pow * self._base.val ** (self._pow - 1)
+        return f'({self.base._str} ** {self._pow})'
 
 
 class ExponentialExpression(Expression):
-    def __init__(self, exponent: Expression):
-        super().__init__((exponent,))
-        self._expo = exponent
+    exponent = Argument()
 
     def _calc(self):
-        return math.exp(self._expo.val)
+        return math.exp(self.exponent.val)
 
-    def _deriv(self, numer: 'Expression') -> None:
-        self._expo._d[numer] += self.val * self._d[numer]
+    @exponent.derivative
+    def derivative(self):
+        return self.val
 
     def _make_str(self) -> str:
-        return f"exp({self._expo._cached_str})"
+        return f"exp({self.exponent._str})"
 
 
 class LogExpression(Expression):
-    def __init__(self, arg: Expression):
-        super().__init__((arg,))
-        self._arg = arg
+    arg = Argument()
 
     def _calc(self):
-        return math.log(self._arg.val)
+        return math.log(self.arg.val)
 
-    def _deriv(self, numer: 'Expression') -> None:
-        self._arg._d[numer] += self._d[numer] / self._arg.val
+    @arg.derivative
+    def derivative(self):
+        return 1 / self.arg.val
 
     def _make_str(self) -> str:
-        return f"ln({self._arg._cached_str}"
+        return f"ln({self.arg._str})"
+
+
+class LogisticExpression(Expression):
+    arg = Argument()
+
+    def _calc(self):
+        return 1 / (1 + exp(-self.arg.val))
+
+    @arg.derivative
+    def derivative(self):
+        return self.val * (1 - self.val)
+
+    def _make_str(self):
+        return f"logistic({self.arg._str})"
 
 
 class Variable(Expression):
@@ -302,7 +347,7 @@ class Variable(Expression):
         return cls._by_name[name]
 
     def __init__(self, name: str):
-        super().__init__(tuple())
+        super().__init__()
         if name in self._by_name:
             raise ValueError(f'Variable with name {name} already exists')
         self._by_name[name] = self
@@ -395,3 +440,10 @@ def log(arg, base=None):
         return ln(arg)
     else:
         return ln(arg) / ln(base)
+
+
+def logistic(arg):
+    if isinstance(arg, Expression):
+        return LogisticExpression(arg)
+    else:
+        return 1 / (1 + exp(-arg))
