@@ -136,7 +136,7 @@ class Expression(ABC):
     @property
     def val(self):
         if self._val is None:
-            self._val = self._calc()
+            self._val = self._get_value()
         return self._val
 
     @val.setter
@@ -151,7 +151,7 @@ class Expression(ABC):
         self._d = Counter()
 
     @abstractmethod
-    def _calc(self):
+    def _get_value(self):
         pass
 
     def _backprop(self) -> None:
@@ -211,7 +211,7 @@ class AdditionExpression(Expression):
     left_term = Argument()
     right_term = Argument()
 
-    def _calc(self):
+    def _get_value(self):
         return self.left_term.val + self.right_term.val
 
     @left_term.derivative
@@ -230,7 +230,7 @@ class ConstantAdditionExpression(Expression):
         super().__init__(exp_term)
         self._const = const_term
 
-    def _calc(self):
+    def _get_value(self):
         return self.exp_term.val + self._const
 
     @exp_term.derivative
@@ -245,7 +245,7 @@ class MultiplicationExpression(Expression):
     left_factor = Argument()
     right_factor = Argument()
 
-    def _calc(self):
+    def _get_value(self):
         return self.left_factor.val * self.right_factor.val
 
     @left_factor.derivative
@@ -267,7 +267,7 @@ class ConstantMultiplicationExpression(Expression):
         super().__init__(exp_factor)
         self._const = const_factor
 
-    def _calc(self):
+    def _get_value(self):
         return self.exp_factor.val * self._const
 
     @exp_factor.derivative
@@ -284,7 +284,7 @@ class PowerExpression(Expression):
         super().__init__(base)
         self._pow = power
 
-    def _calc(self):
+    def _get_value(self):
         return self.base.val ** self._pow
 
     @base.derivative
@@ -298,7 +298,7 @@ class PowerExpression(Expression):
 class ExponentialExpression(Expression):
     exponent = Argument()
 
-    def _calc(self):
+    def _get_value(self):
         return math.exp(self.exponent.val)
 
     @exponent.derivative
@@ -312,7 +312,7 @@ class ExponentialExpression(Expression):
 class LogExpression(Expression):
     arg = Argument()
 
-    def _calc(self):
+    def _get_value(self):
         return math.log(self.arg.val)
 
     @arg.derivative
@@ -326,7 +326,7 @@ class LogExpression(Expression):
 class LogisticExpression(Expression):
     arg = Argument()
 
-    def _calc(self):
+    def _get_value(self):
         return 1 / (1 + exp(-self.arg.val))
 
     @arg.derivative
@@ -370,7 +370,7 @@ class Variable(Expression):
         for exp in self._dependent_exps:
             exp.unset()
 
-    def _calc(self):
+    def _get_value(self):
         if not self._assigned:
             raise VariableAssignmentError(f'Variable {self._name} is not assigned')
         return self._val
