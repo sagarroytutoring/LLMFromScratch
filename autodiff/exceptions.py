@@ -1,0 +1,1 @@
+class VariableAssignmentError(BaseException): pass
