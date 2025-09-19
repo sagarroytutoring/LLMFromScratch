@@ -45,27 +45,19 @@ class Expression(ABC):
         self.__cached_str: Optional[str] = None
 
     def __add__(self, other: Any) -> Union['AdditionExpression', 'ConstantAdditionExpression']:
-        if isinstance(other, Expression):
-            return AdditionExpression(self, other)
-        else:
-            return ConstantAdditionExpression(self, other)
+        return AdditionExpression(self, other) if isinstance(other, Expression) else ConstantAdditionExpression(self, other)
 
     __radd__ = __add__
 
     def __mul__(self, other: Any) -> Union['MultiplicationExpression', 'ConstantMultiplicationExpression']:
-        if isinstance(other, Expression):
-            return MultiplicationExpression(self, other)
-        else:
-            return ConstantMultiplicationExpression(self, other)
+        return MultiplicationExpression(self, other) if isinstance(other, Expression) else ConstantMultiplicationExpression(self, other)
 
     __rmul__ = __mul__
 
     def __pow__(self, power, modulo=None) -> Union['PowerExpression', 'ExponentialExpression']:
         if modulo is not None:
             raise NotImplementedError('Modular exponentiation is not implemented')
-        if isinstance(power, Expression):
-            return ExponentialExpression(LogExpression(self) * power)
-        return PowerExpression(self, power)
+        return ExponentialExpression(LogExpression(self) * power) if isinstance(power, Expression) else PowerExpression(self, power)
 
     def __rpow__(self, other):
         return ExponentialExpression(math.log(other) * self)
